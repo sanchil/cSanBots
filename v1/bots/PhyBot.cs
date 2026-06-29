@@ -290,6 +290,8 @@ namespace Phy.Bot
             var myState = JsonSerializer.Deserialize<CAppState>(jsonSaveFile);
         }
 
+
+
         private int GetBarAge(Position position)
         {
             // 1. Get the index of the bar when the position was opened
@@ -321,30 +323,50 @@ namespace Phy.Bot
             // 'Positions' is the collection of all currently open trades in the account.
             // We filter them by Label (the MagicNumber equivalent) and Symbol.
             return Positions.Count(p => p.Label == label && p.SymbolName == SymbolName);
-        }
 
+        }
+  
+        public double GetAverageTradeProfit(Positions positions, ulong magicNumber)
+        {
+            double totalProfit = 0.0;
+            int tradeCount = 0;
+
+
+            // Convert ulong magic number to a string label (cTrader's tracking method)
+            string labelFilter = magicNumber.ToString();
+
+            // 1. Loop through active running positions
+            foreach (var position in positions)
+            {
+                // 2. Match by Symbol Name and Magic Number Label
+                if (position.SymbolName == SymbolName && position.Label == labelFilter)
+                {
+                    // 3. Sum net profit: Gross Profit + Swaps + Commissions (Handled automatically by .NetProfit)
+                    totalProfit += position.NetProfit;
+                    tradeCount++;
+                }
+            }
+
+            // 4. Calculate mathematical expectancy safely without division-by-zero errors
+            return (tradeCount > 0) ? (totalProfit / tradeCount) : 0.0;
+        }
 
         void onBarTask1()
         {
-            SIG signal = _strategy.getSignal().GetSignal();
+            double profits = GetAverageTradeProfit(Positions, _indData.MagicNumber);
+            SIG signal = _strategy.Strategy_1(_tSig);
+            // SIG signal = _strategy.Strategy_2(_tSig, profits);
+            // SIG signal = _strategy.Strategy_3(_tSig, profits);
             Print($"Generated signal: {_tSig.fuseFastSIG} (fast) and {_tSig.fuseSlowSIG} (slow)");
             SIG tradePosition = SIG.NOSIG;
             int barsHeld = 0;
 
-
-            if (_strategy.getSignal().GetCloseSignal() == SIG.CLOSE)
-            {
-                signal = SIG.CLOSE;
-            }
-
-            bool hasConsensus = (((_indData.HyperbolicAction == 1) || (_indData.CobbDouglasAction == 1)) && _indData.MarketAction == 1);
-            bool hasCollapse = (_indData.HyperbolicAction == -1 && _indData.CobbDouglasAction == -1 && _indData.MarketAction == -1);
-
+            // bool hasConsensus = (((_indData.HyperbolicAction == 1) || (_indData.CobbDouglasAction == 1)) && _indData.MarketAction == 1);
+            // bool hasCollapse = (_indData.HyperbolicAction == -1 && _indData.CobbDouglasAction == -1 && _indData.MarketAction == -1);
 
             double absF = Math.Abs(_indData.FMSR_Norm);
             //bool isSqueeze = (absF <= 0.15);
             bool isSqueeze = (absF <= 0.4);
-
 
             Print($"SIG: {signal}");
 
@@ -392,11 +414,7 @@ namespace Phy.Bot
                         Print(">>> Closing position due to CLOSE signal and barsheld for more than 5...");
                         ClosePosition(pos);
                     }
-                    else if (hasCollapse && (barsHeld > 2))
-                    {
-                        Print(">>> Closing position due to MARKET COLLAPSE signal and barsHeld more than 2...");
-                        ClosePosition(pos);
-                    }
+
                 }
 
             }

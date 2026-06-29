@@ -9,6 +9,7 @@ public interface ISignal
     public SIG GetPhysicsSignal();
     public SIG VolatilityMomentumSIG();
     public SIG GetSignal();
+
     public SIG TradeSlopeSIG(in DTYPE fast, in DTYPE slow, int magicnumber = -1);
 
     public SIG MicroWaveSIG(in DTYPE fast, in DTYPE med);
@@ -21,6 +22,8 @@ public interface ISignal
     public T_SIG InitSignal();
     public void InitHistory(in T_SIG tSIG, bool newBar);
     public T_SIG InitSecSignal(bool newBar);
+
+    public T_SIG GetT_SIG();
     public SIG GetCloseSignal();
     public SIG fuseFastSIG(in T_SIG tSIG, in bool newBar);
     public SIG fuseSlowSIG(in T_SIG tSIG, in bool newBar);
@@ -97,23 +100,28 @@ public class CSignal : ISignal
         // CRITICAL: Instantiate all history buffers here!
         // Replace '12' with your required minimum history period.
 
-        slope30Hist = new SignalHistory(12);
-        baseSlopeHist = new SignalHistory(12);
-        fastHist = new SignalHistory(12);
-        micWaveHist = new SignalHistory(12);
-        macWaveHist = new SignalHistory(12);
-        waveTideHist = new SignalHistory(12);
-        slopeCandle120Hist = new SignalHistory(12);
-        cpScatterHist = new SignalHistory(12);
-        candleVolHist = new SignalHistory(12);
-        volMomHist = new SignalHistory(12);
-        slopeAnalyzerHist = new SignalHistory(12);
-        tradeSlopeHist = new SignalHistory(12);
-        momHist = new SignalHistory(12);
+        // slope30Hist = new SignalHistory(12);
+        // baseSlopeHist = new SignalHistory(12);
+        // fastHist = new SignalHistory(12);
+        // micWaveHist = new SignalHistory(12);
+        // macWaveHist = new SignalHistory(12);
+        // waveTideHist = new SignalHistory(12);
+        // slopeCandle120Hist = new SignalHistory(12);
+        // cpScatterHist = new SignalHistory(12);
+        // candleVolHist = new SignalHistory(12);
+        // volMomHist = new SignalHistory(12);
+        // slopeAnalyzerHist = new SignalHistory(12);
+        // tradeSlopeHist = new SignalHistory(12);
+        // momHist = new SignalHistory(12);
+
 
         _tSig = InitSignal();
     }
 
+    public T_SIG GetT_SIG()
+    {
+        return _tSig;
+    }
 
     public SIG VolatilityMomentumSIG()
     {
