@@ -7,6 +7,7 @@ namespace Phy.Lib;
 interface IStrategies
 {
     public void sayHello();
+    public CSignal getSignal();
 }
 public class CStrategies : IStrategies
 {
@@ -20,6 +21,11 @@ public class CStrategies : IStrategies
     public void sayHello()
     {
         Console.WriteLine("Hello, World!");
+    }
+
+    public CSignal getSignal()
+    {
+        return _signal;
     }
 
 }

@@ -22,6 +22,7 @@ public interface IPhysicsEngine
     public IndData ProcessMarketData(IndData data);
 
     public double atrKinetic();
+    public double atrKineticNorm();
     public double atrScale(double minVal, double maxVal);
     public double adxKinetic(double scale = 50.0, int shift = 1);
     public double adxPotential(int period = 14);
@@ -236,6 +237,30 @@ public class PhysicsEngine : IPhysicsEngine
         // 4. SQUASH (Kinetic Energy = v^2)
         // Punish weak moves, reward strong ones.
         return (atrNorm * atrNorm);
+    }
+
+    public double atrKineticNorm()
+    {
+        
+        double pipValue = _indData.PipSize;
+        double _Period = _indData.Current_Period;
+        double atr = _indData.Atr[SHIFT];
+        
+        if (pipValue <= 0) return 0.0;
+
+        double atrPips = atr / pipValue;
+
+        // 1. BASELINE CALIBRATION (Anchored to M15)
+        // 30 pips is 'Max Normal Energy' for a 15-minute window.
+        double baseRef = 30.0;
+
+        // 2. PHYSICS SCALING: Square Root of Time
+        double timeRatio = Math.Max((double)_Period / 15.0, 1.0); // Prevent div/0 or values < 1 if on M1
+        double physicsCeiling = baseRef * Math.Sqrt(timeRatio);
+
+        // 3. LINEAR NORMALIZE & CLAMP
+        // We return the raw linear ratio. Let downstream functions apply curvature.
+        return Math.Min(Math.Max(atrPips / physicsCeiling, 0.0), 1.0);
     }
 
     public double atrScale(double minVal, double maxVal)

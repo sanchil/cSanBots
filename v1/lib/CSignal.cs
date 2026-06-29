@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 namespace Phy.Lib;
@@ -166,8 +167,8 @@ public class CSignal : ISignal
     {
         T_SIG tSig = new T_SIG();
         IndData indData = _engine.GetIndData();
-        tSig.baseSlopeSIG = kineticAccelerationSIG(_stats.slopesVal(indData.Ima240).val1, _stats.slopesVal(indData.Ima240).val2,0.015,-0.06,"BASE_SLOPE");
-        tSig.slope30SIG = kineticAccelerationSIG(_stats.slopesVal(indData.Ima30).val1, _stats.slopesVal(indData.Ima30).val2,0.015,-0.2,"SLOPE_30");
+        tSig.baseSlopeSIG = kineticAccelerationSIG(_stats.slopesVal(indData.Ima240).val1, _stats.slopesVal(indData.Ima240).val2, 0.015, -0.06, "BASE_SLOPE");
+        tSig.slope30SIG = kineticAccelerationSIG(_stats.slopesVal(indData.Ima30).val1, _stats.slopesVal(indData.Ima30).val2, 0.015, -0.2, "SLOPE_30");
         tSig.fsig5 = fastSlowSIG(indData.Close[1], indData.Ima5[1], 0.0005);
         tSig.fsig30 = fastSlowSIG(indData.Close[1], indData.Ima30[1], 0.0005);
         tSig.fsig60 = fastSlowSIG(indData.Close[1], indData.Ima60[1], 0.0005);
@@ -179,6 +180,7 @@ public class CSignal : ISignal
         tSig.candleVolSIG = CandleVolSIG(indData.Open, indData.Close, indData.TickVolume, indData.Atr[indData.Shift]);
         tSig.singleCandleVolSIG = new SingleCandleVolSIG(_engine).Analyze(indData.Open, indData.Close, indData.TickVolume, indData.Atr[indData.Shift]);
         tSig.layeredMomentumSIG = LayeredMomentumSIG(indData.Ima30);
+
         tSig.microWaveSIG = MicroWaveSIG(_stats.slopesVal(indData.Ima30), _stats.slopesVal(indData.Ima60));
         tSig.macroWaveSIG = MacroWaveSIG(_stats.slopesVal(indData.Ima30), _stats.slopesVal(indData.Ima60));
         tSig.waveTideSIG = WaveTideSIG(_stats.slopesVal(indData.Ima30), _stats.slopesVal(indData.Ima60), _stats.slopesVal(indData.Ima120));
@@ -1014,5 +1016,254 @@ class SlopeAnalyzer
         }
 
         return SIG.NOTRADE;
+    }
+}
+
+class SlopeSingle
+{
+    // --- 2. State Memory ---
+    private double peakPositive;
+    private double peakNegative;
+    private SIG currentIdx; // Track current internal state
+
+    private readonly IPhysicsEngine _engine;
+
+    public SlopeSingle(IPhysicsEngine engine)
+    {
+        _engine = engine;
+        peakPositive = 0;
+        peakNegative = 0;
+        currentIdx = SIG.NOSIG;
+    }
+
+    public SIG Analyze(in DTYPE slope, in double atr)
+    {
+        IndData indData = _engine.GetIndData();
+        double pipValue = indData.PipSize;
+        //const double DECAY = 0.85;
+
+        // Normalize to Pips for scalability
+        double s_pips = (pipValue > 0) ? (slope.val1 / pipValue) : slope.val1;
+        double absSlopePips = Math.Abs(s_pips);
+
+        // Define thresholds in PIPS (10 pips entry, 8 pips exit)
+        double ENTRY_GATE = 7.0;
+        double EXIT_GATE = ENTRY_GATE * 0.8;
+
+        // 1. EXIT CHECK (The Floor)
+        if (absSlopePips < EXIT_GATE)
+        {
+            if (currentIdx != SIG.NOSIG)
+            {
+                reset();
+                return SIG.CLOSE;
+            }
+            return SIG.NOSIG;
+        }
+
+        // 2. ENTRY TRIGGER (The Spark)
+        if (currentIdx == SIG.NOSIG)
+        {
+            double threshold = Math.Max(((atr / pipValue) * 0.5), 1.0);
+            if (absSlopePips > ENTRY_GATE && Math.Abs(s_pips) > threshold)
+            {
+                currentIdx = (s_pips > 0) ? SIG.BUY : SIG.SELL;
+                if (currentIdx == SIG.BUY) peakPositive = s_pips;
+                else peakNegative = s_pips;
+                return currentIdx;
+            }
+            return SIG.NOSIG;
+        }
+
+        // =================================================================
+        // 3. THE DYNAMIC THERMOSTAT (Calculated on the fly)
+        // =================================================================
+
+        // Get the absolute value of our current recorded peak
+        double currentAbsPeak = (currentIdx == SIG.BUY) ? peakPositive : Math.Abs(peakNegative);
+
+        // Normalize the speed (0.0 to 1.0) based on how far above the entry gate the peak is
+        double normalizedSpeed = Math.Max(0.0, Math.Min(1.0, (currentAbsPeak - ENTRY_GATE) / 18.0));
+
+        // Calculate Dynamic Leash:
+        // Slow grinds get a loose 0.65 leash. Parabolic spikes get a tight 0.90 leash.
+        double DYNAMIC_DECAY = 0.65 + (0.25 * normalizedSpeed);
+
+        // 3. HOLDING LOGIC (The Flow)
+        if (currentIdx == SIG.BUY)
+        {
+            if (s_pips > peakPositive) peakPositive = s_pips;
+            // Removed s_pips < 0 to avoid minor pullback whipsaws
+            if (s_pips < (peakPositive * DYNAMIC_DECAY))
+            {
+                reset();
+                return SIG.CLOSE;
+            }
+            return SIG.BUY;
+        }
+
+        if (currentIdx == SIG.SELL)
+        {
+            if (s_pips < peakNegative) peakNegative = s_pips;
+
+            // Trailing Peak Exit OR Hard Reversal
+            if ((s_pips > (peakNegative * DYNAMIC_DECAY)))
+            {
+                reset();
+                return SIG.CLOSE;
+            }
+            return SIG.SELL;
+        }
+
+        return SIG.NOSIG;
+
+
+
+    }
+    public void reset()
+    {
+        peakPositive = 0;
+        peakNegative = 0;
+        currentIdx = SIG.NOSIG;
+    }
+    public SIG getStatus()
+    {
+        return currentIdx;
+    }
+}
+
+
+class SlopeDouble
+{
+
+    private double m_peakRatio;  // class member
+    private DateTime? m_last_bar;
+    private SIG m_cached;
+    private readonly IPhysicsEngine _engine;
+
+
+    public SlopeDouble(IPhysicsEngine engine)
+    {
+        _engine = engine;
+        m_peakRatio = 0;
+        m_last_bar = null;
+        m_cached = SIG.NOSIG;
+    }
+    public void reset()
+    {
+        m_peakRatio = 0;  // class member
+        m_last_bar = null;
+        m_cached = SIG.NOSIG;
+
+    }
+    public double getPeak()
+    {
+        return m_peakRatio;
+    }
+    public SIG tradeSlopeSIG(
+                            in DTYPE fast,
+                            in DTYPE slow,
+                            in double atr,
+                            ulong? magicnumber = null)
+    {
+
+        //// === 1. CACHE MANAGEMENT ===
+        // This cache works agains the signal in longer time frames
+        //   if(Time[0] == m_last_bar) return m_cached;
+        //   m_last_bar = Time[0];
+
+
+        IndData indData = _engine.GetIndData();
+        double pipValue = indData.PipSize;
+
+        if (pipValue <= 0 || slow.val1 == 0) return SIG.NOSIG;
+
+        double fastSlope = fast.val1;
+        double slowSlope = slow.val1;
+        double ratio = fastSlope / slowSlope;
+        double absSlowPips = Math.Abs(slowSlope) / pipValue;
+        bool inTrade = (m_peakRatio > 0);
+
+        // Commenting out the hard brake
+
+        // Optional Safety Check: If user manually closed trade, reset memory.
+        // if(inTrade && util.OrdersTotalByMagic(magicnumber) == 0) { reset(); inTrade = false; }
+
+        //// === 2. THE EMERGENCY BRAKE (Replaces Hard Stop Loss) ===
+        //// Instant closure on directional divergence.
+        //   if(fastSlope * slowSlope <= 0) {
+        //      if(inTrade) {
+        //         reset();
+        //         return SAN_SIGNAL::CLOSE;
+        //      }
+        //      return SAN_SIGNAL::NOSIG;
+        //   }
+
+        // === 3. THE STRUCTURAL FLOOR (Replaces Time-based Exits) ===
+        const double ENTRY_GATE = 7.0;
+        const double EXIT_GATE = 5.0;
+
+        if (inTrade && absSlowPips < EXIT_GATE)
+        {
+            reset();
+            return SIG.CLOSE;
+        }
+        if (!inTrade && absSlowPips < ENTRY_GATE)
+        {
+            return SIG.NOSIG;
+        }
+
+        // === 4. MARKET REGIME VETO (Army Strength) ===
+        if (!inTrade)
+        {
+            double s = (atr > 0) ? Math.Abs(slowSlope) / atr : 0.0;
+            double k = _engine.atrKineticNorm();
+            double mod = 1.0 - 0.12 * k;
+
+            // Do not allow ignition if ATR doesn't support the move
+            if (s <= 0.09 * mod) return SIG.NOSIG;
+        }
+
+        // === 5. PURE SENTIMENT THERMOSTAT (Replaces Hard Take Profit) ===
+        if (ratio > m_peakRatio) m_peakRatio = ratio;
+
+        // Calculate dynamic leash (0.65 to 0.90) based on trend steepness
+        double normalizedSpeed = Math.Max(0.0, Math.Min(1.0, (absSlowPips - ENTRY_GATE) / 18.0));
+        double continuationFactor = 0.65 + (0.25 * normalizedSpeed);
+
+        // A. The Spark (Entry)
+        if (!inTrade)
+        {
+            if (ratio > 1.12)
+            {
+                // CRITICAL CLAMP: Prevent initial news-wicks from setting an impossibly high peak.
+                // Without a Hard SL, a wildly high initial peak would cause an instant, painful stop-out.
+                m_peakRatio = Math.Min(ratio, 2.0);
+
+                m_cached = (fastSlope > 0) ? SIG.BUY : SIG.SELL;
+                return m_cached;
+            }
+            return SIG.NOSIG;
+        }
+
+        // B. The Flow (Holding)
+        if (ratio >= (m_peakRatio * continuationFactor))
+        {
+            m_cached = (fastSlope > 0) ? SIG.BUY : SIG.SELL;
+            return m_cached;
+        }
+
+        // C. The Exhaustion (Exit)
+        // Market sentiment has failed to sustain the structural trend.
+        reset();
+        return SIG.CLOSE;
+    }
+    public SIG analyze(
+                            in DTYPE fast,
+                            in DTYPE slow,
+                            in double atr,
+                            ulong? magicnumber = null)
+    {
+        return tradeSlopeSIG(fast, slow, atr, magicnumber);
     }
 }

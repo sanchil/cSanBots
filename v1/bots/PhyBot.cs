@@ -17,7 +17,7 @@ namespace Phy.Bot
         private T_SIG _tSig;
         private IndData _indData;
         private PhysicsEngine _engine;
-        private CSignal _signal;
+        //private CSignal _signal;
         private CStrategies _strategy;
         private CStats _stats;
         private CAppState _appState;
@@ -211,9 +211,10 @@ namespace Phy.Bot
                 _appState = new CAppState(_indData, _utils);
                 _engine = new PhysicsEngine(_indData, _stats, _utils, _appState);
                 _engine.Log = this.Print;
-                _signal = new CSignal(_engine, _stats, _utils);
+                //_signal = new CSignal(_engine, _stats, _utils);
                 _strategy = new CStrategies(_engine, _stats, _utils);
-                _tSig = _signal.InitSignal();
+                //_tSig = _signal.InitSignal();
+                _tSig = _strategy.getSignal().InitSignal();
                 Print("Phy.Bot initialized successfully.");
 
             }
@@ -236,7 +237,7 @@ namespace Phy.Bot
         protected override void OnBar()
         {
 
-            if (_engine == null || _signal == null || _indData == null || _stats == null || _utils == null || _appState == null)
+            if (_engine == null || _strategy == null || _indData == null || _stats == null || _utils == null || _appState == null)
             {
                 Print("OnBar skipped: Subsystems not initialized.");
                 return;
@@ -254,13 +255,13 @@ namespace Phy.Bot
                     CandleTraded = HasTradedCurrentBarIncludingHistory(this._indData.MagicNumber)
                 };
 
-               // this._indData = _engine.ProcessMarketData(this._indData); // Reset shift for the new bar
+                // this._indData = _engine.ProcessMarketData(this._indData); // Reset shift for the new bar
 
                 SyncSubsystems(this._indData);
                 // Update app state with the latest data
                 this._canTradeThisBar = true;
                 // _tSig = _signal.InitSecSignal(this._canTradeThisBar);
-                _tSig = _signal.InitSignal();
+                _tSig = _strategy.getSignal().InitSignal();
 
 
                 onBarTask1();
@@ -325,13 +326,13 @@ namespace Phy.Bot
 
         void onBarTask1()
         {
-            SIG signal = _signal.GetSignal();
+            SIG signal = _strategy.getSignal().GetSignal();
             Print($"Generated signal: {_tSig.fuseFastSIG} (fast) and {_tSig.fuseSlowSIG} (slow)");
             SIG tradePosition = SIG.NOSIG;
             int barsHeld = 0;
 
 
-            if (_signal.GetCloseSignal() == SIG.CLOSE)
+            if (_strategy.getSignal().GetCloseSignal() == SIG.CLOSE)
             {
                 signal = SIG.CLOSE;
             }
