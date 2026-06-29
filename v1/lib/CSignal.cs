@@ -214,6 +214,7 @@ public class CSignal : ISignal
     public T_SIG InitSecSignal(bool newBar)
     {
         T_SIG tSig = InitSignal();
+
         InitHistory(tSig, newBar);
 
         if (volMomHist != null && volMomHist.IsFull)
@@ -227,8 +228,6 @@ public class CSignal : ISignal
             tSig.fuseFastSIG = SIG.NOSIG;
             tSig.fuseSlowSIG = SIG.NOSIG;
         }
-
-        return tSig;
 
         return tSig;
     }

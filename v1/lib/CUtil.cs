@@ -48,3 +48,14 @@ public class CUtils : IUtils
         return false;
     }
 }
+
+
+// 2. Global logging shortcut (Accessible anywhere without instantiating)
+public static class Log
+{
+    public static void print(object message)
+    {
+        System.Console.WriteLine(message?.ToString());
+        System.Diagnostics.Debug.WriteLine(message?.ToString());
+    }
+}

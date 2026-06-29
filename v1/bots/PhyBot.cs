@@ -18,6 +18,7 @@ namespace Phy.Bot
         private IndData _indData;
         private PhysicsEngine _engine;
         private CSignal _signal;
+        private CStrategies _strategy;
         private CStats _stats;
         private CAppState _appState;
         private CUtils _utils;
@@ -211,6 +212,7 @@ namespace Phy.Bot
                 _engine = new PhysicsEngine(_indData, _stats, _utils, _appState);
                 _engine.Log = this.Print;
                 _signal = new CSignal(_engine, _stats, _utils);
+                _strategy = new CStrategies(_engine, _stats, _utils);
                 _tSig = _signal.InitSignal();
                 Print("Phy.Bot initialized successfully.");
 
@@ -252,13 +254,19 @@ namespace Phy.Bot
                     CandleTraded = HasTradedCurrentBarIncludingHistory(this._indData.MagicNumber)
                 };
 
-                this._indData = _engine.ProcessMarketData(this._indData); // Reset shift for the new bar
+               // this._indData = _engine.ProcessMarketData(this._indData); // Reset shift for the new bar
 
                 SyncSubsystems(this._indData);
                 // Update app state with the latest data
                 this._canTradeThisBar = true;
-                _tSig = _signal.InitSecSignal(this._canTradeThisBar);
+                // _tSig = _signal.InitSecSignal(this._canTradeThisBar);
+                _tSig = _signal.InitSignal();
+
+
                 onBarTask1();
+
+
+
             }
             catch (NullReferenceException nre)
             {
