@@ -1,0 +1,33 @@
+# ====================================================================
+# .NET Build & Compilation Artifacts (Ignore completely)
+# ====================================================================
+**/[Bb]in/
+**/[Oo]bj/
+**/[Pp]ublish/
+.vs/
+
+# Specific binary extensions safety net
+*.dll
+*.pdb
+*.deps.json
+*.exe
+*.cache
+*.algo
+*.metadata
+
+# ====================================================================
+# NuGet Package Manager Caches
+# ====================================================================
+project.assets.json
+*.nuget.g.props
+*.nuget.g.targets
+*.nuget.cache
+
+# ====================================================================
+# OS & Environment files
+# ====================================================================
+.DS_Store
+Thumbs.db
+.env
+tree.txt
+.bkp
