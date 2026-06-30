@@ -251,6 +251,7 @@ namespace Phy.Bot
                 this._indData = this._indData with
                 {
                     CurrSpread = _currSpread,
+                    SpreadLimit = (int)_engine.atrScale(15, 120),
                     BarsHeld = _barsHeld,
                     CandleTraded = HasTradedCurrentBarIncludingHistory(this._indData.MagicNumber)
                 };
@@ -354,10 +355,13 @@ namespace Phy.Bot
         void onBarTask1()
         {
             double profits = GetAverageTradeProfit(Positions, _indData.MagicNumber);
-            SIG signal = _strategy.Strategy_1(_tSig);
+            
+            SIG signal = _strategy.Strategy_2(_tSig, profits);
             // SIG signal = _strategy.Strategy_2(_tSig, profits);
             // SIG signal = _strategy.Strategy_3(_tSig, profits);
-            Print($"Generated signal: {_tSig.fuseFastSIG} (fast) and {_tSig.fuseSlowSIG} (slow)");
+            
+            Print($"Generated signal: {signal}");
+
             SIG tradePosition = SIG.NOSIG;
             int barsHeld = 0;
 
@@ -368,7 +372,8 @@ namespace Phy.Bot
             //bool isSqueeze = (absF <= 0.15);
             bool isSqueeze = (absF <= 0.4);
 
-            Print($"SIG: {signal}");
+           
+
 
             // Define your volume (Example: 10,000 units = 0.10 lots)
             double volumeUnits = Symbol.QuantityToVolumeInUnits(0.1);
@@ -383,9 +388,10 @@ namespace Phy.Bot
 
             if (_indData.CurrSpread > _indData.SpreadLimit) // E.g., Max 3 pips spread
             {
-                Print(">>> Veto: Spread too high.");
+                Print(">>> Veto: Spread too high.", " Curr spread:", _indData.CurrSpread, " Spread limit:", _indData.SpreadLimit);
                 return;
             }
+
             //################## CLOSE LOGIC ##################
             if (activeTradesCount > 0)
             {

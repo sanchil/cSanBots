@@ -41,10 +41,12 @@ public class CStrategies : IStrategies
            && ((tSig.fsig30 == SIG.BUY) || (tSig.fsig30 == SIG.SELL))
         )
         {
+            Log.print($"Strategy_1: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, microWaveSIG={tSig.microWaveSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");   
             return tSig.fsig30;
         }
         else
         {
+            Log.print($"Strategy_1: CLOSE");   
             return SIG.CLOSE;
         }
 
@@ -65,13 +67,14 @@ public class CStrategies : IStrategies
            && (tSig.fastSIG == SIG.HOLD)
         )
         {
-
+            Log.print($"Strategy_2: Signal CLOSE");
             return SIG.CLOSE;
         }
         else if ((tSig.baseSlopeSIG == SIG.CLOSE)
         && (totalTradeProfits >= 4.0)
         )
         {
+            Log.print($"Strategy_2: Profit CLOSE");   
             return SIG.CLOSE;
         }
         else if (
@@ -81,8 +84,8 @@ public class CStrategies : IStrategies
            && (tSig.fsig30 == tSig.baseSlopeSIG)
         )
         {
+            Log.print($"Strategy_2: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");   
             return tSig.fsig30;
-
         }
         ////################################################################################################################
 
@@ -101,10 +104,11 @@ public class CStrategies : IStrategies
           && (tSig.fastSIG == SIG.HOLD)
         )
         {
+            Log.print($"Strategy_3: Signal CLOSE");
             return SIG.CLOSE;
         }
         else if ((tSig.baseSlopeSIG == SIG.CLOSE)
-        &&(totalTradeProfits>=4.0)
+        && (totalTradeProfits >= 4.0)
         )
         {
             return SIG.CLOSE;
@@ -116,6 +120,7 @@ public class CStrategies : IStrategies
           && (tSig.fsig30 == tSig.baseSlopeSIG)
         )
         {
+            Log.print($"Strategy_3: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");
             return tSig.fsig30;
         }
         //################################################################################################################
