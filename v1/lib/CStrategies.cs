@@ -52,9 +52,6 @@ public class CStrategies : IStrategies
 
         //################################################################################################################
 
-
-
-
     }
 
     public SIG Strategy_2(in T_SIG tSig, in double totalTradeProfits)
@@ -89,7 +86,6 @@ public class CStrategies : IStrategies
             return tSig.fsig30;
         }
         ////################################################################################################################
-
 
         return SIG.NOSIG;
     }
@@ -127,6 +123,4 @@ public class CStrategies : IStrategies
         //################################################################################################################
         return SIG.NOSIG;
     }
-
-
 }
