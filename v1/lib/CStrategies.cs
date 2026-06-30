@@ -59,6 +59,7 @@ public class CStrategies : IStrategies
 
     public SIG Strategy_2(in T_SIG tSig, in double totalTradeProfits)
     {
+        Log.print($"Point 1: Strategy_2: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");
         ////################################################################################################################
         //############################# baseSlope Strategy  [close on baseSlope != Close]
         //################################################################################################################
@@ -84,7 +85,7 @@ public class CStrategies : IStrategies
            && (tSig.fsig30 == tSig.baseSlopeSIG)
         )
         {
-            Log.print($"Strategy_2: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");   
+            Log.print($"Point 2: Strategy_2: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");   
             return tSig.fsig30;
         }
         ////################################################################################################################
@@ -120,7 +121,7 @@ public class CStrategies : IStrategies
           && (tSig.fsig30 == tSig.baseSlopeSIG)
         )
         {
-            Log.print($"Strategy_3: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");
+            Log.print($"Point 3: Strategy_3: fsig5={tSig.fsig5}, fsig30={tSig.fsig30}, fastSIG={tSig.fastSIG}, baseSlopeSIG={tSig.baseSlopeSIG}");
             return tSig.fsig30;
         }
         //################################################################################################################

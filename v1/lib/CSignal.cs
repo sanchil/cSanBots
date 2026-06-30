@@ -181,6 +181,7 @@ public class CSignal : ISignal
         tSig.fsig30 = fastSlowSIG(indData.Close[1], indData.Ima30[1], 0.0005);
         tSig.fsig60 = fastSlowSIG(indData.Close[1], indData.Ima60[1], 0.0005);
         tSig.fsig240 = fastSlowSIG(indData.Close[1], indData.Ima240[1], 0.0005);
+        tSig.fastSIG = (fuseSIG(fuseSIG(tSig.fsig5, tSig.fsig14), tSig.fsig30) != SIG.NOSIG) ? fuseSIG(fuseSIG(tSig.fsig5, tSig.fsig14), tSig.fsig30) : SIG.CLOSE;
 
         tSig.volMomentumSIG = VolatilityMomentumSIG();
         tSig.tradeSlopeSIG = TradeSlopeSIG(_stats.slopesVal(indData.Ima30), _stats.slopesVal(indData.Ima60));

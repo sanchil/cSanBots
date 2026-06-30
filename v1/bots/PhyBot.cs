@@ -178,6 +178,7 @@ namespace Phy.Bot
             _appState.SetIndData(data);
             _stats.SetIndData(data);
             _utils.SetIndData(data);
+            _engine.SetIndData(data);
         }
 
         protected override void OnStart()
